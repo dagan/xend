@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<phpunit bootstrap="bootstrap.php">
+    <php>
+        <const name="WORDPRESS_API_VERSION" value="latest" />
+    </php>
+    <testsuites>
+        <testsuite>
+            <directory suffix="Test.php">Xend</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
