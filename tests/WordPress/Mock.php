@@ -18,9 +18,11 @@ class Mock {
         if (static::$_self == null) {
             $folder = sprintf(__DIR__ . "/wp-v%s", static::$_apiVersion);
             require_once("$folder/functions.php");
+            require_once("$folder/capabilities.php");
             require_once("$folder/post.php");
             require_once("$folder/query.php");
             require_once("$folder/widgets.php");
+            require_once("$folder/wp-db.php");
             static::$_self = new static();
         }
 
@@ -71,7 +73,11 @@ class Mock {
      * @param \PHPUnit_Framework_MockObject_Matcher_Invocation $invocation
      * @return \PHPUnit_Framework_MockObject_Builder_InvocationMocker
      */
-    public function expects($function, \PHPUnit_Framework_MockObject_Matcher_Invocation $matcher) {
+    public function expects($function, \PHPUnit_Framework_MockObject_Matcher_Invocation $matcher = null) {
+        if (!isset($matcher)) {
+            $matcher = new \PHPUnit_Framework_MockObject_Matcher_InvokedCount(1);
+        }
+
         return $this->_invocationMocker->expects($matcher)->method($function);
     }
 

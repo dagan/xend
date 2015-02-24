@@ -1,12 +1,5 @@
 <?php
 
-/**
- * The WordPress Query class.
- *
- * @link http://codex.wordpress.org/Function_Reference/WP_Query Codex page.
- *
- * @since 1.5.0
- */
 class WP_Query {
 
 	/**
@@ -3794,63 +3787,1225 @@ class WP_Query {
 	}
 }
 
-/**
- * Redirect old slugs to the correct permalink.
- *
- * Attempts to find the current slug from the past slugs.
- *
- * @since 2.1.0
- *
- * @uses $wp_query
- * @global wpdb $wpdb WordPress database abstraction object.
- *
- * @return null If no link is found, null is returned.
- */
-function wp_old_slug_redirect() {
-	global $wp_query;
-	if ( is_404() && '' != $wp_query->query_vars['name'] ) :
-		global $wpdb;
+class WP_Comment_Query {
+    /**
+     * SQL for database query.
+     *
+     * @since 4.0.1
+     * @access public
+     * @var string
+     */
+    public $request;
 
-		// Guess the current post_type based on the query vars.
-		if ( get_query_var('post_type') )
-			$post_type = get_query_var('post_type');
-		elseif ( !empty($wp_query->query_vars['pagename']) )
-			$post_type = 'page';
-		else
-			$post_type = 'post';
+    /**
+     * Metadata query container
+     *
+     * @since 3.5.0
+     * @access public
+     * @var object WP_Meta_Query
+     */
+    public $meta_query = false;
 
-		if ( is_array( $post_type ) ) {
-			if ( count( $post_type ) > 1 )
-				return;
-			$post_type = array_shift( $post_type );
-		}
+    /**
+     * Date query container
+     *
+     * @since 3.7.0
+     * @access public
+     * @var object WP_Date_Query
+     */
+    public $date_query = false;
 
-		// Do not attempt redirect for hierarchical post types
-		if ( is_post_type_hierarchical( $post_type ) )
-			return;
+    /**
+     * @var array
+     */
+    public $query_vars;
 
-		$query = $wpdb->prepare("SELECT post_id FROM $wpdb->postmeta, $wpdb->posts WHERE ID = post_id AND post_type = %s AND meta_key = '_wp_old_slug' AND meta_value = %s", $post_type, $wp_query->query_vars['name']);
+    /**
+     * @var array
+     */
+    public $comments;
 
-		// if year, monthnum, or day have been specified, make our query more precise
-		// just in case there are multiple identical _wp_old_slug values
-		if ( '' != $wp_query->query_vars['year'] )
-			$query .= $wpdb->prepare(" AND YEAR(post_date) = %d", $wp_query->query_vars['year']);
-		if ( '' != $wp_query->query_vars['monthnum'] )
-			$query .= $wpdb->prepare(" AND MONTH(post_date) = %d", $wp_query->query_vars['monthnum']);
-		if ( '' != $wp_query->query_vars['day'] )
-			$query .= $wpdb->prepare(" AND DAYOFMONTH(post_date) = %d", $wp_query->query_vars['day']);
+    /**
+     * Make private/protected methods readable for backwards compatibility.
+     *
+     * @since 4.0.0
+     * @access public
+     *
+     * @param callable $name      Method to call.
+     * @param array    $arguments Arguments to pass when calling.
+     * @return mixed|bool Return value of the callback, false otherwise.
+     */
+    public function __call( $name, $arguments ) {
+        return call_user_func_array( array( $this, $name ), $arguments );
+    }
 
-		$id = (int) $wpdb->get_var($query);
+    /**
+     * Execute the query
+     *
+     * @since 3.1.0
+     * @since 4.1.0 Introduced 'comment__in', 'comment__not_in', 'post_author__in',
+     *              'post_author__not_in', 'author__in', 'author__not_in', 'post__in',
+     *              'post__not_in', 'include_unapproved', 'type__in', and 'type__not_in'
+     *              arguments to $query_vars.
+     *
+     * @param string|array $query_vars {
+     *     Optional. Array or query string of comment query parameters.
+     *
+     *     @type string       $author_email        Comment author email address. Default empty.
+     *     @type array        $author__in          Array of author IDs to include comments for. Default empty.
+     *     @type array        $author__not_in      Array of author IDs to exclude comments for. Default empty.
+     *     @type array        $comment__in         Array of comment IDs to include. Default empty.
+     *     @type array        $comment__not_in     Array of comment IDs to exclude. Default empty.
+     *     @type bool         $count               Whether to return a comment count (true) or array of comment
+     *                                             objects (false). Default false.
+     *     @type array        $date_query          Date query clauses to limit comments by. See {@see WP_Date_Query}.
+     *                                             Default null.
+     *     @type string       $fields              Comment fields to return. Accepts 'ids' for comment IDs only or
+     *                                             empty for all fields. Default empty.
+     *     @type int          $ID                  Currently unused.
+     *     @type array        $include_unapproved  Array of IDs or email addresses of users whose unapproved comments
+     *                                             will be returned by the query regardless of `$status`. Default empty.
+     *     @type int          $karma               Karma score to retrieve matching comments for. Default empty.
+     *     @type string       $meta_key            Include comments with a matching comment meta key. Default empty.
+     *     @type string       $meta_value          Include comments with a matching comment meta value. Requires
+     *                                             `$meta_key` to be set. Default empty.
+     *     @type array        $meta_query          Meta query clauses to limit retrieved comments by.
+     *                                             See {@see WP_Meta_Query}. Default empty.
+     *     @type int          $number              Maximum number of comments to retrieve. Default null (no limit).
+     *     @type int          $offset              Number of comments to offset the query. Used to build LIMIT clause.
+     *                                             Default 0.
+     *     @type string|array $orderby             Comment status or array of statuses. Accepts 'comment_agent',
+     *                                             'comment_approved', 'comment_author', 'comment_author_email',
+     *                                             'comment_author_IP', 'comment_author_url', 'comment_content',
+     *                                             'comment_date', 'comment_date_gmt', 'comment_ID', 'comment_karma',
+     *                                             'comment_parent', 'comment_post_ID', 'comment_type', 'user_id',
+     *                                             'meta_value', 'meta_value_num', or value of $meta_key.
+     *                                              Also accepts false, empty array, or 'none' to disable `ORDER BY`
+     *                                             clause. Default: 'comment_date_gmt'.
+     *     @type string       $order               How to order retrieved comments. Accepts 'ASC', 'DESC'.
+     *                                             Default: 'DESC'.
+     *     @type int          $parent              Parent ID of comment to retrieve children of. Default empty.
+     *     @type array        $post_author__in     Array of author IDs to retrieve comments for. Default empty.
+     *     @type array        $post_author__not_in Array of author IDs *not* to retrieve comments for. Default empty.
+     *     @type int          $post_ID             Currently unused.
+     *     @type int          $post_id             Limit results to those affiliated with a given post ID. Default 0.
+     *     @type array        $post__in            Array of post IDs to include affiliated comments for. Default empty.
+     *     @type array        $post__not_in        Array of post IDs to exclude affiliated comments for. Default empty.
+     *     @type int          $post_author         Comment author ID to limit results by. Default empty.
+     *     @type string       $post_status         Post status to retrieve affiliated comments for. Default empty.
+     *     @type string       $post_type           Post type to retrieve affiliated comments for. Default empty.
+     *     @type string       $post_name           Post name to retrieve affiliated comments for. Default empty.
+     *     @type int          $post_parent         Post parent ID to retrieve affiliated comments for. Default empty.
+     *     @type string       $search              Search term(s) to retrieve matching comments for. Default empty.
+     *     @type string       $status              Comment status to limit results by. Accepts 'hold'
+     *                                             (`comment_status=0`), 'approve' (`comment_status=1`), 'all', or a
+     *                                             custom comment status. Default 'all'.
+     *     @type string|array $type                Include comments of a given type, or array of types. Accepts
+     *                                             'comment', 'pings' (includes 'pingback' and 'trackback'), or any
+     *                                             custom type string. Default empty.
+     *     @type array        $type__in            Include comments from a given array of comment types. Default empty.
+     *     @type array        $type__not_in        Exclude comments from a given array of comment types. Default empty.
+     *     @type int          $user_id             Include comments for a specific user ID. Default empty.
+     * }
+     * @return int|array Array of comments or number of found comments if `$count` is set to true.
+     */
+    public function query( $query_vars ) {
+        global $wpdb;
 
-		if ( ! $id )
-			return;
+        $defaults = array(
+            'author_email' => '',
+            'author__in' => '',
+            'author__not_in' => '',
+            'include_unapproved' => '',
+            'fields' => '',
+            'ID' => '',
+            'comment__in' => '',
+            'comment__not_in' => '',
+            'karma' => '',
+            'number' => '',
+            'offset' => '',
+            'orderby' => '',
+            'order' => 'DESC',
+            'parent' => '',
+            'post_author__in' => '',
+            'post_author__not_in' => '',
+            'post_ID' => '',
+            'post_id' => 0,
+            'post__in' => '',
+            'post__not_in' => '',
+            'post_author' => '',
+            'post_name' => '',
+            'post_parent' => '',
+            'post_status' => '',
+            'post_type' => '',
+            'status' => 'all',
+            'type' => '',
+            'type__in' => '',
+            'type__not_in' => '',
+            'user_id' => '',
+            'search' => '',
+            'count' => false,
+            'meta_key' => '',
+            'meta_value' => '',
+            'meta_query' => '',
+            'date_query' => null, // See WP_Date_Query
+        );
 
-		$link = get_permalink($id);
+        $groupby = '';
 
-		if ( !$link )
-			return;
+        $this->query_vars = wp_parse_args( $query_vars, $defaults );
 
-		wp_redirect( $link, 301 ); // Permanent redirect
-		exit;
-	endif;
+        // Parse meta query
+        $this->meta_query = new WP_Meta_Query();
+        $this->meta_query->parse_query_vars( $this->query_vars );
+
+        /**
+         * Fires before comments are retrieved.
+         *
+         * @since 3.1.0
+         *
+         * @param WP_Comment_Query &$this Current instance of WP_Comment_Query, passed by reference.
+         */
+        do_action_ref_array( 'pre_get_comments', array( &$this ) );
+
+        // $args can be whatever, only use the args defined in defaults to compute the key
+        $key = md5( serialize( wp_array_slice_assoc( $this->query_vars, array_keys( $defaults ) ) )  );
+        $last_changed = wp_cache_get( 'last_changed', 'comment' );
+        if ( ! $last_changed ) {
+            $last_changed = microtime();
+            wp_cache_set( 'last_changed', $last_changed, 'comment' );
+        }
+        $cache_key = "get_comments:$key:$last_changed";
+
+        if ( $cache = wp_cache_get( $cache_key, 'comment' ) ) {
+            return $cache;
+        }
+
+        $where = array();
+
+        // Assemble clauses related to 'comment_approved'.
+        $approved_clauses = array();
+
+        // 'status' accepts an array or a comma-separated string.
+        $status_clauses = array();
+        $statuses = $this->query_vars['status'];
+        if ( ! is_array( $statuses ) ) {
+            $statuses = preg_split( '/[\s,]+/', $statuses );
+        }
+
+        // 'any' overrides other statuses.
+        if ( ! in_array( 'any', $statuses ) ) {
+            foreach ( $statuses as $status ) {
+                switch ( $status ) {
+                    case 'hold' :
+                        $status_clauses[] = "comment_approved = '0'";
+                        break;
+
+                    case 'approve' :
+                        $status_clauses[] = "comment_approved = '1'";
+                        break;
+
+                    case 'all' :
+                    case '' :
+                        $status_clauses[] = "( comment_approved = '0' OR comment_approved = '1' )";
+                        break;
+
+                    default :
+                        $status_clauses[] = $wpdb->prepare( "comment_approved = %s", $status );
+                        break;
+                }
+            }
+
+            if ( ! empty( $status_clauses ) ) {
+                $approved_clauses[] = '( ' . implode( ' OR ', $status_clauses ) . ' )';
+            }
+        }
+
+        // User IDs or emails whose unapproved comments are included, regardless of $status.
+        if ( ! empty( $this->query_vars['include_unapproved'] ) ) {
+            $include_unapproved = $this->query_vars['include_unapproved'];
+
+            // Accepts arrays or comma-separated strings.
+            if ( ! is_array( $include_unapproved ) ) {
+                $include_unapproved = preg_split( '/[\s,]+/', $include_unapproved );
+            }
+
+            $unapproved_ids = $unapproved_emails = array();
+            foreach ( $include_unapproved as $unapproved_identifier ) {
+                // Numeric values are assumed to be user ids.
+                if ( is_numeric( $unapproved_identifier ) ) {
+                    $approved_clauses[] = $wpdb->prepare( "( user_id = %d AND comment_approved = '0' )", $unapproved_identifier );
+
+                    // Otherwise we match against email addresses.
+                } else {
+                    $approved_clauses[] = $wpdb->prepare( "( comment_author_email = %s AND comment_approved = '0' )", $unapproved_identifier );
+                }
+            }
+        }
+
+        // Collapse comment_approved clauses into a single OR-separated clause.
+        if ( ! empty( $approved_clauses ) ) {
+            if ( 1 === count( $approved_clauses ) ) {
+                $where[] = $approved_clauses[0];
+            } else {
+                $where[] = '( ' . implode( ' OR ', $approved_clauses ) . ' )';
+            }
+        }
+
+        $order = ( 'ASC' == strtoupper( $this->query_vars['order'] ) ) ? 'ASC' : 'DESC';
+
+        // Disable ORDER BY with 'none', an empty array, or boolean false.
+        if ( in_array( $this->query_vars['orderby'], array( 'none', array(), false ), true ) ) {
+            $orderby = '';
+        } else if ( ! empty( $this->query_vars['orderby'] ) ) {
+            $ordersby = is_array( $this->query_vars['orderby'] ) ?
+                $this->query_vars['orderby'] :
+                preg_split( '/[,\s]/', $this->query_vars['orderby'] );
+
+            $allowed_keys = array(
+                'comment_agent',
+                'comment_approved',
+                'comment_author',
+                'comment_author_email',
+                'comment_author_IP',
+                'comment_author_url',
+                'comment_content',
+                'comment_date',
+                'comment_date_gmt',
+                'comment_ID',
+                'comment_karma',
+                'comment_parent',
+                'comment_post_ID',
+                'comment_type',
+                'user_id',
+            );
+            if ( ! empty( $this->query_vars['meta_key'] ) ) {
+                $allowed_keys[] = $this->query_vars['meta_key'];
+                $allowed_keys[] = 'meta_value';
+                $allowed_keys[] = 'meta_value_num';
+            }
+            $ordersby = array_intersect( $ordersby, $allowed_keys );
+            foreach ( $ordersby as $key => $value ) {
+                if ( $value == $this->query_vars['meta_key'] || $value == 'meta_value' ) {
+                    $ordersby[ $key ] = "$wpdb->commentmeta.meta_value";
+                } elseif ( $value == 'meta_value_num' ) {
+                    $ordersby[ $key ] = "$wpdb->commentmeta.meta_value+0";
+                }
+            }
+            $orderby = empty( $ordersby ) ? 'comment_date_gmt' : implode(', ', $ordersby);
+        } else {
+            $orderby = 'comment_date_gmt';
+        }
+
+        $number = absint( $this->query_vars['number'] );
+        $offset = absint( $this->query_vars['offset'] );
+
+        if ( ! empty( $number ) ) {
+            if ( $offset ) {
+                $limits = 'LIMIT ' . $offset . ',' . $number;
+            } else {
+                $limits = 'LIMIT ' . $number;
+            }
+        } else {
+            $limits = '';
+        }
+
+        if ( $this->query_vars['count'] ) {
+            $fields = 'COUNT(*)';
+        } else {
+            switch ( strtolower( $this->query_vars['fields'] ) ) {
+                case 'ids':
+                    $fields = "$wpdb->comments.comment_ID";
+                    break;
+                default:
+                    $fields = "*";
+                    break;
+            }
+        }
+
+        $join = '';
+
+        $post_id = absint( $this->query_vars['post_id'] );
+        if ( ! empty( $post_id ) ) {
+            $where[] = $wpdb->prepare( 'comment_post_ID = %d', $post_id );
+        }
+
+        // Parse comment IDs for an IN clause.
+        if ( ! empty( $this->query_vars['comment__in'] ) ) {
+            $where[] = 'comment_ID IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['comment__in'] ) ) . ' )';
+        }
+
+        // Parse comment IDs for a NOT IN clause.
+        if ( ! empty( $this->query_vars['comment__not_in'] ) ) {
+            $where[] = 'comment_ID NOT IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['comment__not_in'] ) ) . ' )';
+        }
+
+        // Parse comment post IDs for an IN clause.
+        if ( ! empty( $this->query_vars['post__in'] ) ) {
+            $where[] = 'comment_post_ID IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['post__in'] ) ) . ' )';
+        }
+
+        // Parse comment post IDs for a NOT IN clause.
+        if ( ! empty( $this->query_vars['post__not_in'] ) ) {
+            $where[] = 'comment_post_ID NOT IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['post__not_in'] ) ) . ' )';
+        }
+
+        if ( '' !== $this->query_vars['author_email'] ) {
+            $where[] = $wpdb->prepare( 'comment_author_email = %s', $this->query_vars['author_email'] );
+        }
+
+        if ( '' !== $this->query_vars['karma'] ) {
+            $where[] = $wpdb->prepare( 'comment_karma = %d', $this->query_vars['karma'] );
+        }
+
+        // Filtering by comment_type: 'type', 'type__in', 'type__not_in'.
+        $raw_types = array(
+            'IN' => array_merge( (array) $this->query_vars['type'], (array) $this->query_vars['type__in'] ),
+            'NOT IN' => (array) $this->query_vars['type__not_in'],
+        );
+
+        $comment_types = array();
+        foreach ( $raw_types as $operator => $_raw_types ) {
+            $_raw_types = array_unique( $_raw_types );
+
+            foreach ( $_raw_types as $type ) {
+                switch ( $type ) {
+                    // An empty translates to 'all', for backward compatibility
+                    case '':
+                    case 'all' :
+                        break;
+
+                    case 'comment':
+                    case 'comments':
+                        $comment_types[ $operator ][] = "''";
+                        break;
+
+                    case 'pings':
+                        $comment_types[ $operator ][] = "'pingback'";
+                        $comment_types[ $operator ][] = "'trackback'";
+                        break;
+
+                    default:
+                        $comment_types[ $operator ][] = $wpdb->prepare( '%s', $type );
+                        break;
+                }
+            }
+
+            if ( ! empty( $comment_types[ $operator ] ) ) {
+                $types_sql = implode( ', ', $comment_types[ $operator ] );
+                $where[] = "comment_type $operator ($types_sql)";
+            }
+        }
+
+        if ( '' !== $this->query_vars['parent'] ) {
+            $where[] = $wpdb->prepare( 'comment_parent = %d', $this->query_vars['parent'] );
+        }
+
+        if ( is_array( $this->query_vars['user_id'] ) ) {
+            $where[] = 'user_id IN (' . implode( ',', array_map( 'absint', $this->query_vars['user_id'] ) ) . ')';
+        } elseif ( '' !== $this->query_vars['user_id'] ) {
+            $where[] = $wpdb->prepare( 'user_id = %d', $this->query_vars['user_id'] );
+        }
+
+        if ( '' !== $this->query_vars['search'] ) {
+            $search_sql = $this->get_search_sql(
+                $this->query_vars['search'],
+                array( 'comment_author', 'comment_author_email', 'comment_author_url', 'comment_author_IP', 'comment_content' )
+            );
+
+            // Strip leading 'AND'.
+            $where[] = preg_replace( '/^\s*AND\s*/', '', $search_sql );
+        }
+
+        // If any post-related query vars are passed, join the posts table.
+        $join_posts_table = false;
+        $plucked = wp_array_slice_assoc( $this->query_vars, array( 'post_author', 'post_name', 'post_parent', 'post_status', 'post_type' ) );
+        $post_fields = array_filter( $plucked );
+
+        if ( ! empty( $post_fields ) ) {
+            $join_posts_table = true;
+            foreach ( $post_fields as $field_name => $field_value ) {
+                $where[] = $wpdb->prepare( " {$wpdb->posts}.{$field_name} = %s", $field_value );
+            }
+        }
+
+        // Comment author IDs for an IN clause.
+        if ( ! empty( $this->query_vars['author__in'] ) ) {
+            $where[] = 'user_id IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['author__in'] ) ) . ' )';
+        }
+
+        // Comment author IDs for a NOT IN clause.
+        if ( ! empty( $this->query_vars['author__not_in'] ) ) {
+            $where[] = 'user_id NOT IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['author__not_in'] ) ) . ' )';
+        }
+
+        // Post author IDs for an IN clause.
+        if ( ! empty( $this->query_vars['post_author__in'] ) ) {
+            $join_posts_table = true;
+            $where[] = 'post_author IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['post_author__in'] ) ) . ' )';
+        }
+
+        // Post author IDs for a NOT IN clause.
+        if ( ! empty( $this->query_vars['post_author__not_in'] ) ) {
+            $join_posts_table = true;
+            $where[] = 'post_author NOT IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['post_author__not_in'] ) ) . ' )';
+        }
+
+        if ( $join_posts_table ) {
+            $join = "JOIN $wpdb->posts ON $wpdb->posts.ID = $wpdb->comments.comment_post_ID";
+        }
+
+        if ( ! empty( $this->meta_query->queries ) ) {
+            $clauses = $this->meta_query->get_sql( 'comment', $wpdb->comments, 'comment_ID', $this );
+            $join .= $clauses['join'];
+
+            // Strip leading 'AND'.
+            $where[] = preg_replace( '/^\s*AND\s*/', '', $clauses['where'] );
+
+            if ( ! $this->query_vars['count'] ) {
+                $groupby = "{$wpdb->comments}.comment_ID";
+            }
+        }
+
+        $date_query = $this->query_vars['date_query'];
+        if ( ! empty( $date_query ) && is_array( $date_query ) ) {
+            $date_query_object = new WP_Date_Query( $date_query, 'comment_date' );
+            $where[] = preg_replace( '/^\s*AND\s*/', '', $date_query_object->get_sql() );
+        }
+
+        $where = implode( ' AND ', $where );
+
+        $pieces = array( 'fields', 'join', 'where', 'orderby', 'order', 'limits', 'groupby' );
+        /**
+         * Filter the comment query clauses.
+         *
+         * @since 3.1.0
+         *
+         * @param array            $pieces A compacted array of comment query clauses.
+         * @param WP_Comment_Query &$this  Current instance of WP_Comment_Query, passed by reference.
+         */
+        $clauses = apply_filters_ref_array( 'comments_clauses', array( compact( $pieces ), &$this ) );
+
+        $fields = isset( $clauses[ 'fields' ] ) ? $clauses[ 'fields' ] : '';
+        $join = isset( $clauses[ 'join' ] ) ? $clauses[ 'join' ] : '';
+        $where = isset( $clauses[ 'where' ] ) ? $clauses[ 'where' ] : '';
+        $orderby = isset( $clauses[ 'orderby' ] ) ? $clauses[ 'orderby' ] : '';
+        $order = isset( $clauses[ 'order' ] ) ? $clauses[ 'order' ] : '';
+        $limits = isset( $clauses[ 'limits' ] ) ? $clauses[ 'limits' ] : '';
+        $groupby = isset( $clauses[ 'groupby' ] ) ? $clauses[ 'groupby' ] : '';
+
+        if ( $where ) {
+            $where = 'WHERE ' . $where;
+        }
+
+        if ( $groupby ) {
+            $groupby = 'GROUP BY ' . $groupby;
+        }
+
+        if ( $orderby ) {
+            $orderby = "ORDER BY $orderby $order";
+        }
+
+        $this->request = "SELECT $fields FROM $wpdb->comments $join $where $groupby $orderby $limits";
+
+        if ( $this->query_vars['count'] ) {
+            return $wpdb->get_var( $this->request );
+        }
+
+        if ( 'ids' == $this->query_vars['fields'] ) {
+            $this->comments = $wpdb->get_col( $this->request );
+            return array_map( 'intval', $this->comments );
+        }
+
+        $results = $wpdb->get_results( $this->request );
+        /**
+         * Filter the comment query results.
+         *
+         * @since 3.1.0
+         *
+         * @param array            $results  An array of comments.
+         * @param WP_Comment_Query &$this    Current instance of WP_Comment_Query, passed by reference.
+         */
+        $comments = apply_filters_ref_array( 'the_comments', array( $results, &$this ) );
+
+        wp_cache_add( $cache_key, $comments, 'comment' );
+
+        return $comments;
+    }
+
+    /**
+     * Used internally to generate an SQL string for searching across multiple columns
+     *
+     * @access protected
+     * @since 3.1.0
+     *
+     * @param string $string
+     * @param array $cols
+     * @return string
+     */
+    protected function get_search_sql( $string, $cols ) {
+        global $wpdb;
+
+        $like = '%' . $wpdb->esc_like( $string ) . '%';
+
+        $searches = array();
+        foreach ( $cols as $col ) {
+            $searches[] = $wpdb->prepare( "$col LIKE %s", $like );
+        }
+
+        return ' AND (' . implode(' OR ', $searches) . ')';
+    }
+}
+
+class WP_Meta_Query {
+    /**
+     * Array of metadata queries.
+     *
+     * See {@see WP_Meta_Query::__construct()} for information on meta query arguments.
+     *
+     * @since 3.2.0
+     * @access public
+     * @var array
+     */
+    public $queries = array();
+
+    /**
+     * The relation between the queries. Can be one of 'AND' or 'OR'.
+     *
+     * @since 3.2.0
+     * @access public
+     * @var string
+     */
+    public $relation;
+
+    /**
+     * Database table to query for the metadata.
+     *
+     * @since 4.1.0
+     * @access public
+     * @var string
+     */
+    public $meta_table;
+
+    /**
+     * Column in meta_table that represents the ID of the object the metadata belongs to.
+     *
+     * @since 4.1.0
+     * @access public
+     * @var string
+     */
+    public $meta_id_column;
+
+    /**
+     * Database table that where the metadata's objects are stored (eg $wpdb->users).
+     *
+     * @since 4.1.0
+     * @access public
+     * @var string
+     */
+    public $primary_table;
+
+    /**
+     * Column in primary_table that represents the ID of the object.
+     *
+     * @since 4.1.0
+     * @access public
+     * @var string
+     */
+    public $primary_id_column;
+
+    /**
+     * A flat list of table aliases used in JOIN clauses.
+     *
+     * @since 4.1.0
+     * @access protected
+     * @var array
+     */
+    protected $table_aliases = array();
+
+    /**
+     * Constructor.
+     *
+     * @since 3.2.0
+     * @access public
+     *
+     * @param array $meta_query {
+     *     Array of meta query clauses.
+     *
+     *     @type string $relation Optional. The MySQL keyword used to join
+     *                            the clauses of the query. Accepts 'AND', or 'OR'. Default 'AND'.
+     *     @type array {
+     *         Optional. An array of first-order clause parameters, or another fully-formed meta query.
+     *
+     *         @type string $key     Meta key to filter by.
+     *         @type string $value   Meta value to filter by.
+     *         @type string $compare MySQL operator used for comparing the $value. Accepts '=',
+     *                               '!=', '>', '>=', '<', '<=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN',
+     *                               'BETWEEN', 'NOT BETWEEN', 'REGEXP', 'NOT REGEXP', or 'RLIKE'.
+     *                               Default is 'IN' when `$value` is an array, '=' otherwise.
+     *         @type string $type    MySQL data type that the meta_value column will be CAST to for
+     *                               comparisons. Accepts 'NUMERIC', 'BINARY', 'CHAR', 'DATE',
+     *                               'DATETIME', 'DECIMAL', 'SIGNED', 'TIME', or 'UNSIGNED'.
+     *                               Default is 'CHAR'.
+     *     }
+     * }
+     */
+    public function __construct( $meta_query = false ) {
+        if ( !$meta_query )
+            return;
+
+        if ( isset( $meta_query['relation'] ) && strtoupper( $meta_query['relation'] ) == 'OR' ) {
+            $this->relation = 'OR';
+        } else {
+            $this->relation = 'AND';
+        }
+
+        $this->queries = $this->sanitize_query( $meta_query );
+    }
+
+    /**
+     * Ensure the 'meta_query' argument passed to the class constructor is well-formed.
+     *
+     * Eliminates empty items and ensures that a 'relation' is set.
+     *
+     * @since 4.1.0
+     * @access public
+     *
+     * @param array $queries Array of query clauses.
+     * @return array Sanitized array of query clauses.
+     */
+    public function sanitize_query( $queries ) {
+        $clean_queries = array();
+
+        if ( ! is_array( $queries ) ) {
+            return $clean_queries;
+        }
+
+        foreach ( $queries as $key => $query ) {
+            if ( 'relation' === $key ) {
+                $relation = $query;
+
+            } else if ( ! is_array( $query ) ) {
+                continue;
+
+                // First-order clause.
+            } else if ( $this->is_first_order_clause( $query ) ) {
+                if ( isset( $query['value'] ) && array() === $query['value'] ) {
+                    unset( $query['value'] );
+                }
+
+                $clean_queries[] = $query;
+
+                // Otherwise, it's a nested query, so we recurse.
+            } else {
+                $cleaned_query = $this->sanitize_query( $query );
+
+                if ( ! empty( $cleaned_query ) ) {
+                    $clean_queries[] = $cleaned_query;
+                }
+            }
+        }
+
+        if ( empty( $clean_queries ) ) {
+            return $clean_queries;
+        }
+
+        // Sanitize the 'relation' key provided in the query.
+        if ( isset( $relation ) && 'OR' === strtoupper( $relation ) ) {
+            $clean_queries['relation'] = 'OR';
+
+            /*
+             * If there is only a single clause, call the relation 'OR'.
+             * This value will not actually be used to join clauses, but it
+             * simplifies the logic around combining key-only queries.
+             */
+        } else if ( 1 === count( $clean_queries ) ) {
+            $clean_queries['relation'] = 'OR';
+
+            // Default to AND.
+        } else {
+            $clean_queries['relation'] = 'AND';
+        }
+
+        return $clean_queries;
+    }
+
+    /**
+     * Determine whether a query clause is first-order.
+     *
+     * A first-order meta query clause is one that has either a 'key' or
+     * a 'value' array key.
+     *
+     * @since 4.1.0
+     * @access protected
+     *
+     * @param array $query Meta query arguments.
+     * @return bool Whether the query clause is a first-order clause.
+     */
+    protected function is_first_order_clause( $query ) {
+        return isset( $query['key'] ) || isset( $query['value'] );
+    }
+
+    /**
+     * Constructs a meta query based on 'meta_*' query vars
+     *
+     * @since 3.2.0
+     * @access public
+     *
+     * @param array $qv The query variables
+     */
+    public function parse_query_vars( $qv ) {
+        $meta_query = array();
+
+        /*
+         * For orderby=meta_value to work correctly, simple query needs to be
+         * first (so that its table join is against an unaliased meta table) and
+         * needs to be its own clause (so it doesn't interfere with the logic of
+         * the rest of the meta_query).
+         */
+        $primary_meta_query = array();
+        foreach ( array( 'key', 'compare', 'type' ) as $key ) {
+            if ( ! empty( $qv[ "meta_$key" ] ) ) {
+                $primary_meta_query[ $key ] = $qv[ "meta_$key" ];
+            }
+        }
+
+        // WP_Query sets 'meta_value' = '' by default.
+        if ( isset( $qv['meta_value'] ) && '' !== $qv['meta_value'] && ( ! is_array( $qv['meta_value'] ) || $qv['meta_value'] ) ) {
+            $primary_meta_query['value'] = $qv['meta_value'];
+        }
+
+        $existing_meta_query = isset( $qv['meta_query'] ) && is_array( $qv['meta_query'] ) ? $qv['meta_query'] : array();
+
+        if ( ! empty( $primary_meta_query ) && ! empty( $existing_meta_query ) ) {
+            $meta_query = array(
+                'relation' => 'AND',
+                $primary_meta_query,
+                $existing_meta_query,
+            );
+        } else if ( ! empty( $primary_meta_query ) ) {
+            $meta_query = array(
+                $primary_meta_query,
+            );
+        } else if ( ! empty( $existing_meta_query ) ) {
+            $meta_query = $existing_meta_query;
+        }
+
+        $this->__construct( $meta_query );
+    }
+
+    /**
+     * Return the appropriate alias for the given meta type if applicable.
+     *
+     * @since 3.7.0
+     * @access public
+     *
+     * @param string $type MySQL type to cast meta_value.
+     * @return string MySQL type.
+     */
+    public function get_cast_for_type( $type = '' ) {
+        if ( empty( $type ) )
+            return 'CHAR';
+
+        $meta_type = strtoupper( $type );
+
+        if ( ! preg_match( '/^(?:BINARY|CHAR|DATE|DATETIME|SIGNED|UNSIGNED|TIME|NUMERIC(?:\(\d+(?:,\s?\d+)?\))?|DECIMAL(?:\(\d+(?:,\s?\d+)?\))?)$/', $meta_type ) )
+            return 'CHAR';
+
+        if ( 'NUMERIC' == $meta_type )
+            $meta_type = 'SIGNED';
+
+        return $meta_type;
+    }
+
+    /**
+     * Generates SQL clauses to be appended to a main query.
+     *
+     * @since 3.2.0
+     * @access public
+     *
+     * @param string $type              Type of meta, eg 'user', 'post'.
+     * @param string $primary_table     Database table where the object being filtered is stored (eg wp_users).
+     * @param string $primary_id_column ID column for the filtered object in $primary_table.
+     * @param object $context           Optional. The main query object.
+     * @return array {
+     *     Array containing JOIN and WHERE SQL clauses to append to the main query.
+     *
+     *     @type string $join  SQL fragment to append to the main JOIN clause.
+     *     @type string $where SQL fragment to append to the main WHERE clause.
+     * }
+     */
+    public function get_sql( $type, $primary_table, $primary_id_column, $context = null ) {
+        global $wpdb;
+
+        if ( ! $meta_table = _get_meta_table( $type ) ) {
+            return false;
+        }
+
+        $this->meta_table     = $meta_table;
+        $this->meta_id_column = sanitize_key( $type . '_id' );
+
+        $this->primary_table     = $primary_table;
+        $this->primary_id_column = $primary_id_column;
+
+        $sql = $this->get_sql_clauses();
+
+        /*
+         * If any JOINs are LEFT JOINs (as in the case of NOT EXISTS), then all JOINs should
+         * be LEFT. Otherwise posts with no metadata will be excluded from results.
+         */
+        if ( false !== strpos( $sql['join'], 'LEFT JOIN' ) ) {
+            $sql['join'] = str_replace( 'INNER JOIN', 'LEFT JOIN', $sql['join'] );
+        }
+
+        /**
+         * Filter the meta query's generated SQL.
+         *
+         * @since 3.1.0
+         *
+         * @param array $args {
+         *     An array of meta query SQL arguments.
+         *
+         *     @type array  $clauses           Array containing the query's JOIN and WHERE clauses.
+         *     @type array  $queries           Array of meta queries.
+         *     @type string $type              Type of meta.
+         *     @type string $primary_table     Primary table.
+         *     @type string $primary_id_column Primary column ID.
+         *     @type object $context           The main query object.
+         * }
+         */
+        return apply_filters_ref_array( 'get_meta_sql', array( $sql, $this->queries, $type, $primary_table, $primary_id_column, $context ) );
+    }
+
+    /**
+     * Generate SQL clauses to be appended to a main query.
+     *
+     * Called by the public {@see WP_Meta_Query::get_sql()}, this method
+     * is abstracted out to maintain parity with the other Query classes.
+     *
+     * @since 4.1.0
+     * @access protected
+     *
+     * @return array {
+     *     Array containing JOIN and WHERE SQL clauses to append to the main query.
+     *
+     *     @type string $join  SQL fragment to append to the main JOIN clause.
+     *     @type string $where SQL fragment to append to the main WHERE clause.
+     * }
+     */
+    protected function get_sql_clauses() {
+        /*
+         * $queries are passed by reference to get_sql_for_query() for recursion.
+         * To keep $this->queries unaltered, pass a copy.
+         */
+        $queries = $this->queries;
+        $sql = $this->get_sql_for_query( $queries );
+
+        if ( ! empty( $sql['where'] ) ) {
+            $sql['where'] = ' AND ' . $sql['where'];
+        }
+
+        return $sql;
+    }
+
+    /**
+     * Generate SQL clauses for a single query array.
+     *
+     * If nested subqueries are found, this method recurses the tree to
+     * produce the properly nested SQL.
+     *
+     * @since 4.1.0
+     * @access protected
+     *
+     * @param array $query Query to parse, passed by reference.
+     * @param int   $depth Optional. Number of tree levels deep we currently are.
+     *                     Used to calculate indentation. Default 0.
+     * @return array {
+     *     Array containing JOIN and WHERE SQL clauses to append to a single query array.
+     *
+     *     @type string $join  SQL fragment to append to the main JOIN clause.
+     *     @type string $where SQL fragment to append to the main WHERE clause.
+     * }
+     */
+    protected function get_sql_for_query( &$query, $depth = 0 ) {
+        $sql_chunks = array(
+            'join'  => array(),
+            'where' => array(),
+        );
+
+        $sql = array(
+            'join'  => '',
+            'where' => '',
+        );
+
+        $indent = '';
+        for ( $i = 0; $i < $depth; $i++ ) {
+            $indent .= "  ";
+        }
+
+        foreach ( $query as $key => &$clause ) {
+            if ( 'relation' === $key ) {
+                $relation = $query['relation'];
+            } else if ( is_array( $clause ) ) {
+
+                // This is a first-order clause.
+                if ( $this->is_first_order_clause( $clause ) ) {
+                    $clause_sql = $this->get_sql_for_clause( $clause, $query );
+
+                    $where_count = count( $clause_sql['where'] );
+                    if ( ! $where_count ) {
+                        $sql_chunks['where'][] = '';
+                    } else if ( 1 === $where_count ) {
+                        $sql_chunks['where'][] = $clause_sql['where'][0];
+                    } else {
+                        $sql_chunks['where'][] = '( ' . implode( ' AND ', $clause_sql['where'] ) . ' )';
+                    }
+
+                    $sql_chunks['join'] = array_merge( $sql_chunks['join'], $clause_sql['join'] );
+                    // This is a subquery, so we recurse.
+                } else {
+                    $clause_sql = $this->get_sql_for_query( $clause, $depth + 1 );
+
+                    $sql_chunks['where'][] = $clause_sql['where'];
+                    $sql_chunks['join'][]  = $clause_sql['join'];
+                }
+            }
+        }
+
+        // Filter to remove empties.
+        $sql_chunks['join']  = array_filter( $sql_chunks['join'] );
+        $sql_chunks['where'] = array_filter( $sql_chunks['where'] );
+
+        if ( empty( $relation ) ) {
+            $relation = 'AND';
+        }
+
+        // Filter duplicate JOIN clauses and combine into a single string.
+        if ( ! empty( $sql_chunks['join'] ) ) {
+            $sql['join'] = implode( ' ', array_unique( $sql_chunks['join'] ) );
+        }
+
+        // Generate a single WHERE clause with proper brackets and indentation.
+        if ( ! empty( $sql_chunks['where'] ) ) {
+            $sql['where'] = '( ' . "\n  " . $indent . implode( ' ' . "\n  " . $indent . $relation . ' ' . "\n  " . $indent, $sql_chunks['where'] ) . "\n" . $indent . ')';
+        }
+
+        return $sql;
+    }
+
+    /**
+     * Generate SQL JOIN and WHERE clauses for a first-order query clause.
+     *
+     * "First-order" means that it's an array with a 'key' or 'value'.
+     *
+     * @since 4.1.0
+     * @access public
+     *
+     * @param array $clause       Query clause, passed by reference.
+     * @param array $parent_query Parent query array.
+     * @return array {
+     *     Array containing JOIN and WHERE SQL clauses to append to a first-order query.
+     *
+     *     @type string $join  SQL fragment to append to the main JOIN clause.
+     *     @type string $where SQL fragment to append to the main WHERE clause.
+     * }
+     */
+    public function get_sql_for_clause( &$clause, $parent_query ) {
+        global $wpdb;
+
+        $sql_chunks = array(
+            'where' => array(),
+            'join' => array(),
+        );
+
+        if ( isset( $clause['compare'] ) ) {
+            $clause['compare'] = strtoupper( $clause['compare'] );
+        } else {
+            $clause['compare'] = isset( $clause['value'] ) && is_array( $clause['value'] ) ? 'IN' : '=';
+        }
+
+        if ( ! in_array( $clause['compare'], array(
+            '=', '!=', '>', '>=', '<', '<=',
+            'LIKE', 'NOT LIKE',
+            'IN', 'NOT IN',
+            'BETWEEN', 'NOT BETWEEN',
+            'EXISTS', 'NOT EXISTS',
+            'REGEXP', 'NOT REGEXP', 'RLIKE'
+        ) ) ) {
+            $clause['compare'] = '=';
+        }
+
+        $meta_compare = $clause['compare'];
+
+        // First build the JOIN clause, if one is required.
+        $join = '';
+
+        // We prefer to avoid joins if possible. Look for an existing join compatible with this clause.
+        $alias = $this->find_compatible_table_alias( $clause, $parent_query );
+        if ( false === $alias ) {
+            $i = count( $this->table_aliases );
+            $alias = $i ? 'mt' . $i : $this->meta_table;
+
+            // JOIN clauses for NOT EXISTS have their own syntax.
+            if ( 'NOT EXISTS' === $meta_compare ) {
+                $join .= " LEFT JOIN $this->meta_table";
+                $join .= $i ? " AS $alias" : '';
+                $join .= $wpdb->prepare( " ON ($this->primary_table.$this->primary_id_column = $alias.$this->meta_id_column AND $alias.meta_key = %s )", $clause['key'] );
+
+                // All other JOIN clauses.
+            } else {
+                $join .= " INNER JOIN $this->meta_table";
+                $join .= $i ? " AS $alias" : '';
+                $join .= " ON ( $this->primary_table.$this->primary_id_column = $alias.$this->meta_id_column )";
+            }
+
+            $this->table_aliases[] = $alias;
+            $sql_chunks['join'][] = $join;
+        }
+
+        // Save the alias to this clause, for future siblings to find.
+        $clause['alias'] = $alias;
+
+        // Next, build the WHERE clause.
+
+        // meta_key.
+        if ( array_key_exists( 'key', $clause ) ) {
+            if ( 'NOT EXISTS' === $meta_compare ) {
+                $sql_chunks['where'][] = $alias . '.' . $this->meta_id_column . ' IS NULL';
+            } else {
+                $sql_chunks['where'][] = $wpdb->prepare( "$alias.meta_key = %s", trim( $clause['key'] ) );
+            }
+        }
+
+        // meta_value.
+        if ( array_key_exists( 'value', $clause ) ) {
+            $meta_value = $clause['value'];
+            $meta_type = $this->get_cast_for_type( isset( $clause['type'] ) ? $clause['type'] : '' );
+
+            if ( in_array( $meta_compare, array( 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN' ) ) ) {
+                if ( ! is_array( $meta_value ) ) {
+                    $meta_value = preg_split( '/[,\s]+/', $meta_value );
+                }
+            } else {
+                $meta_value = trim( $meta_value );
+            }
+
+            switch ( $meta_compare ) {
+                case 'IN' :
+                case 'NOT IN' :
+                    $meta_compare_string = '(' . substr( str_repeat( ',%s', count( $meta_value ) ), 1 ) . ')';
+                    $where = $wpdb->prepare( $meta_compare_string, $meta_value );
+                    break;
+
+                case 'BETWEEN' :
+                case 'NOT BETWEEN' :
+                    $meta_value = array_slice( $meta_value, 0, 2 );
+                    $where = $wpdb->prepare( '%s AND %s', $meta_value );
+                    break;
+
+                case 'LIKE' :
+                case 'NOT LIKE' :
+                    $meta_value = '%' . $wpdb->esc_like( $meta_value ) . '%';
+                    $where = $wpdb->prepare( '%s', $meta_value );
+                    break;
+
+                // EXISTS with a value is interpreted as '='.
+                case 'EXISTS' :
+                    $meta_compare = '=';
+                    $where = $wpdb->prepare( '%s', $meta_value );
+                    break;
+
+                // 'value' is ignored for NOT EXISTS.
+                case 'NOT EXISTS' :
+                    $where = '';
+                    break;
+
+                default :
+                    $where = $wpdb->prepare( '%s', $meta_value );
+                    break;
+
+            }
+
+            if ( $where ) {
+                $sql_chunks['where'][] = "CAST($alias.meta_value AS {$meta_type}) {$meta_compare} {$where}";
+            }
+        }
+
+        /*
+         * Multiple WHERE clauses (for meta_key and meta_value) should
+         * be joined in parentheses.
+         */
+        if ( 1 < count( $sql_chunks['where'] ) ) {
+            $sql_chunks['where'] = array( '( ' . implode( ' AND ', $sql_chunks['where'] ) . ' )' );
+        }
+
+        return $sql_chunks;
+    }
+
+    /**
+     * Identify an existing table alias that is compatible with the current
+     * query clause.
+     *
+     * We avoid unnecessary table joins by allowing each clause to look for
+     * an existing table alias that is compatible with the query that it
+     * needs to perform.
+     *
+     * An existing alias is compatible if (a) it is a sibling of `$clause`
+     * (ie, it's under the scope of the same relation), and (b) the combination
+     * of operator and relation between the clauses allows for a shared table join.
+     * In the case of {@see WP_Meta_Query}, this only applies to 'IN' clauses that
+     * are connected by the relation 'OR'.
+     *
+     * @since 4.1.0
+     * @access protected
+     *
+     * @param  array       $clause       Query clause.
+     * @param  array       $parent_query Parent query of $clause.
+     * @return string|bool Table alias if found, otherwise false.
+     */
+    protected function find_compatible_table_alias( $clause, $parent_query ) {
+        $alias = false;
+
+        foreach ( $parent_query as $sibling ) {
+            // If the sibling has no alias yet, there's nothing to check.
+            if ( empty( $sibling['alias'] ) ) {
+                continue;
+            }
+
+            // We're only interested in siblings that are first-order clauses.
+            if ( ! is_array( $sibling ) || ! $this->is_first_order_clause( $sibling ) ) {
+                continue;
+            }
+
+            $compatible_compares = array();
+
+            // Clauses connected by OR can share joins as long as they have "positive" operators.
+            if ( 'OR' === $parent_query['relation'] ) {
+                $compatible_compares = array( '=', 'IN', 'BETWEEN', 'LIKE', 'REGEXP', 'RLIKE', '>', '>=', '<', '<=' );
+
+                // Clauses joined by AND with "negative" operators share a join only if they also share a key.
+            } else if ( isset( $sibling['key'] ) && isset( $clause['key'] ) && $sibling['key'] === $clause['key'] ) {
+                $compatible_compares = array( '!=', 'NOT IN', 'NOT LIKE' );
+            }
+
+            $clause_compare  = strtoupper( $clause['compare'] );
+            $sibling_compare = strtoupper( $sibling['compare'] );
+            if ( in_array( $clause_compare, $compatible_compares ) && in_array( $sibling_compare, $compatible_compares ) ) {
+                $alias = $sibling['alias'];
+                break;
+            }
+        }
+
+        /**
+         * Filter the table alias identified as compatible with the current clause.
+         *
+         * @since 4.1.0
+         *
+         * @param string|bool $alias        Table alias, or false if none was found.
+         * @param array       $clause       First-order query clause.
+         * @param array       $parent_query Parent of $clause.
+         * @param object      $this         WP_Meta_Query object.
+         */
+        return apply_filters( 'meta_query_find_compatible_table_alias', $alias, $clause, $parent_query, $this ) ;
+    }
 }

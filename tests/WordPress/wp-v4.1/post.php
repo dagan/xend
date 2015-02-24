@@ -1,11 +1,5 @@
 <?php
 
-/**
- * WordPress Post class.
- *
- * @since 3.5.0
- *
- */
 final class WP_Post {
 
     /**

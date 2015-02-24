@@ -12,7 +12,11 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
      * @return \Xend\WordPress\Mock
      */
     protected function wordpress() {
-        return \Xend\WordPress\Mock::getInstance();
+        if (!isset($this->_wordpress)) {
+            $this->_wordpress = \Xend\WordPress\Mock::getInstance();
+            $this->_wordpress->reset();
+        }
+        return $this->_wordpress;
     }
 
     protected function verifyMockObjects() {
