@@ -1,12 +1,16 @@
 <?xml version="1.0"?>
-<phpunit bootstrap="bootstrap.php">
+<phpunit bootstrap="bootstrap-loader.php">
     <php>
         <const name="WORDPRESS_API_VERSION" value="latest" />
     </php>
     <testsuites>
-        <testsuite name="Default">
+        <testsuite>
             <directory suffix="Test.php">Xend</directory>
-            <exclude>Xend/LoaderTest.php</exclude>
         </testsuite>
     </testsuites>
+    <groups>
+        <include>
+            <group>Loader</group>
+        </include>
+    </groups>
 </phpunit>
