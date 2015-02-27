@@ -8,5 +8,5 @@ before_install: composer self-update
 install: composer install --dev
 
 script:
- - phpunit --configuration phpunit.xml
- - phpunit --configuration phpunit-loader.xml
+ - phpunit --configuration tests/phpunit.xml
+ - phpunit --configuration tests/phpunit-loader.xml
