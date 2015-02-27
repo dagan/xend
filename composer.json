@@ -1,7 +1,7 @@
 {
-  "name": "techdagan/xend",
+  "name": "xend/xend",
   "description": "Xend is a WordPress abstraction layer.",
-  "minimum-stability": "dev",
+  "minimum-stability": "stable",
   "license": "mit",
   "authors": [
     {
