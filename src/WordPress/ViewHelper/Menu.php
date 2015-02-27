@@ -67,7 +67,7 @@ class Menu {
     }
 
     public function __isset($property) {
-        return ($this->${property} != null);
+        return ($this->{$property} != null);
     }
 
     /**
