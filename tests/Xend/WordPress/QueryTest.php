@@ -38,7 +38,7 @@ class QueryTest extends TestCase {
 
     public function testCurrentPost() {
         global $authordata;
-        $authordata = new \WP_User(array());
+        $authordata = $this->getMockBuilder("WP_User")->disableOriginalConstructor()->getMock();
         $this->wp_query->posts = array(1, new \WP_Post(new \ArrayObject(array('ID' => 1))));
         $this->wp_query->current_post = 1;
 
