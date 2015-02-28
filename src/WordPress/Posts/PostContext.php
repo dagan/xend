@@ -56,7 +56,7 @@ class PostContext extends Post {
     }
 
     public function getTheAuthor() {
-        return $this->_posts->getFilteredAuthor($this);
+        return $this->_posts->getFilteredAuthorName($this);
     }
 
     public function theAuthor() {
