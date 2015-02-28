@@ -93,7 +93,10 @@ class PostsTest extends TestCase {
         $wpdb->expects($this->once())
              ->method('get_results')
              ->with("SELECT * FROM wp_comments  WHERE ( ( comment_approved = '0' OR comment_approved = '1' ) ) AND comment_post_ID = 7  ORDER BY comment_date_gmt ASC ")
-             ->willReturn(array(array('comment_ID' => 8), array('comment_ID' => 9)));
+             ->willReturn(array(
+                              new \ArrayObject(array('comment_ID' => 8), \ArrayObject::ARRAY_AS_PROPS),
+                              new \ArrayObject(array('comment_ID' => 9), \ArrayObject::ARRAY_AS_PROPS),
+                          ));
         $wpdb->expects($this->once())->method('prepare')->willReturn('comment_post_ID = 7');
         $this->wordpress()->expects('wp_cache_get', $this->any())->willReturn(false);
         $this->wordpress()
@@ -131,7 +134,7 @@ class PostsTest extends TestCase {
     }
 
     public function testGetFilteredCommentAuthor() {
-        $comment = new Posts\Comment(array('comment_author' => 'Johnny Commenter'));
+        $comment = new Posts\Comment(new \ArrayObject(array('comment_author' => 'Johnny Commenter'), \ArrayObject::ARRAY_AS_PROPS));
         $this->events->expects($this->once())
                      ->method('applyFilters')
                      ->with('get_comment_author', 'Johnny Commenter')
@@ -140,7 +143,7 @@ class PostsTest extends TestCase {
     }
 
     public function testGetFilteredCommentAuthorEmail() {
-        $comment = new Posts\Comment(array('comment_author_email' => 'johnny@gmail.com'));
+        $comment = new Posts\Comment(new \ArrayObject(array('comment_author_email' => 'johnny@gmail.com'), \ArrayObject::ARRAY_AS_PROPS));
         $this->events->expects($this->once())
                      ->method('applyFilters')
                      ->with('get_comment_author_email', 'johnny@gmail.com')
@@ -149,7 +152,7 @@ class PostsTest extends TestCase {
     }
 
     public function testGetFilteredCommentAuthorUrl() {
-        $comment = new Posts\Comment(array('comment_author_url' => 'www.johnny-commenter.com'));
+        $comment = new Posts\Comment(new \ArrayObject(array('comment_author_url' => 'www.johnny-commenter.com'), \ArrayObject::ARRAY_AS_PROPS));
         $this->events->expects($this->once())
                      ->method('applyFilters')
                      ->with('get_comment_author_url', 'www.johnny-commenter.com')
@@ -158,7 +161,7 @@ class PostsTest extends TestCase {
     }
 
     public function testGetFilteredCommentAuthorIp() {
-        $comment = new Posts\Comment(array('comment_author_IP' => '10.1.2.3'));
+        $comment = new Posts\Comment(new \ArrayObject(array('comment_author_IP' => '10.1.2.3'), \ArrayObject::ARRAY_AS_PROPS));
         $this->events->expects($this->once())
                      ->method('applyFilters')
                      ->with('get_comment_author_IP', '10.1.2.3')
@@ -167,10 +170,11 @@ class PostsTest extends TestCase {
     }
 
     public function testGetFilteredCommentExcerpt() {
-        $comment = new Posts\Comment(array(
+        $comment = new Posts\Comment(new \ArrayObject(array(
                                          'comment_content' => "Hello\r\nWorld!\r\nIt's so very nice to meet you. I'm "
                                                                . "curious, what's it like to be so big and water "
-                                                               . "covered?"));
+                                                               . "covered?"),
+                                         \ArrayObject::ARRAY_AS_PROPS));
         $this->events->expects($this->once())
                      ->method('applyFilters')
                      ->with('get_comment_excerpt',
@@ -184,10 +188,11 @@ class PostsTest extends TestCase {
     }
 
     public function testGetFilteredCommentContent() {
-        $comment = new Posts\Comment(array(
+        $comment = new Posts\Comment(new \ArrayObject(array(
                                          'comment_content' => "Hello\r\nWorld!\r\nIt's so very nice to meet you. I'm "
                                                                . "curious, what's it like to be so big and water "
-                                                               . "covered?"));
+                                                               . "covered?"),
+                                         \ArrayObject::ARRAY_AS_PROPS));
         $this->events->expects($this->once())
                      ->method('applyFilters')
                      ->with('get_comment_text',

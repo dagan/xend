@@ -91,7 +91,7 @@ abstract class AbstractPosts implements PostsInterface {
     }
 
     public function getFilteredCommentAuthor(Comment $comment) {
-        return $this->_events->applyFilters('get_comment_author', $comment->author);
+        return $this->_events->applyFilters('get_comment_author', $comment->authorName);
     }
 
     public function getFilteredCommentAuthorEmail(Comment $comment) {

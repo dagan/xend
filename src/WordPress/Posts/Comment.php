@@ -41,40 +41,38 @@ class Comment {
 
         if (method_exists($this, $getterMethod)) {
             return $this->$getterMethod();
-        } elseif (array_key_exists($option, $this->_comment)) {
-            return $this->_comment[$option];
-        } elseif (array_key_exists($option, $this->_comment)) {
-            return $this->_comment[$option];
+        } elseif (isset($this->_comment->$option)) {
+            return $this->_comment->$option;
         } else {
             return null;
         }
     }
 
     protected function _getId() {
-        return $this->_comment['comment_ID'];
+        return $this->_comment->comment_ID;
     }
 
     protected function _getPostId() {
-        return $this->_comment['comment_post_ID'];
+        return $this->_comment->comment_post_ID;
     }
 
     protected function _getParent() {
-        return (int)$this->_comment['comment_parent'];
+        return (int)$this->_comment->comment_parent;
     }
 
     protected function _getAuthorName() {
-        return $this->_comment['comment_author'];
+        return $this->_comment->comment_author;
     }
 
     protected function _getAuthorIp() {
-        return $this->_comment['comment_author_IP'];
+        return $this->_comment->comment_author_IP;
     }
 
     protected function _getDate() {
-        return new \DateTime($this->_comment['comment_date']);
+        return new \DateTime($this->_comment->comment_date);
     }
 
     protected function _getDateGmt() {
-        return new \DateTime($this->_comment['comment_date_gmt'], new \DateTimeZone('GMT'));
+        return new \DateTime($this->_comment->comment_date_gmt, new \DateTimeZone('GMT'));
     }
 }
