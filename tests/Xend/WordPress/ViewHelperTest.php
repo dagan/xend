@@ -69,7 +69,7 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
     }
 
     public function testGetThemeUri() {
-        $this->wordpress()->expects('get_template_uri', $this->once())
+        $this->wordpress()->expects('get_template_directory_uri', $this->once())
              ->with()
              ->willReturn("/wp-content/themes/theme-dir");
         $this->assertEquals("/wp-content/themes/theme-dir", $this->fixture->getThemeUri());
@@ -83,7 +83,7 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
     }
 
     public function testGetChildThemeUri() {
-        $this->wordpress()->expects('get_stylesheet_uri', $this->once())
+        $this->wordpress()->expects('get_stylesheet_directory_uri', $this->once())
              ->with()
              ->willReturn("/wp-content/themes/child-dir");
         $this->assertEquals("/wp-content/themes/child-dir", $this->fixture->getChildThemeUri());

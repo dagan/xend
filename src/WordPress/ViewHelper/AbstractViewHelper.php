@@ -43,11 +43,11 @@ abstract class AbstractViewHelper implements ViewHelperInterface {
     }
 
     public function getThemeUri() {
-        if (!function_exists('get_template_uri')) {
+        if (!function_exists('get_template_directory_uri')) {
             throw new Exception('Native WordPress function get_template_directory_uri() is not defined');
         }
 
-        return get_template_uri();
+        return get_template_directory_uri();
     }
 
     public function getChildThemeDirectory() {
@@ -59,11 +59,11 @@ abstract class AbstractViewHelper implements ViewHelperInterface {
     }
 
     public function getChildThemeUri() {
-        if (!function_exists('get_stylesheet_uri')) {
+        if (!function_exists('get_stylesheet_directory_uri')) {
             throw new Exception('Native WordPress function get_stylesheet_directory_uri() is not defined');
         }
 
-        return get_stylesheet_uri();
+        return get_stylesheet_directory_uri();
     }
 
     public function registerStyle($handle, $uri, $dependencies = array(), $version = false, $media = 'all') {
