@@ -72,16 +72,16 @@ function get_stylesheet_directory() {
     return \Xend\WordPress\Mock::getInstance()->invoke('get_stylesheet_directory', func_get_args());
 }
 
-function get_stylesheet_uri() {
-    return \Xend\WordPress\Mock::getInstance()->invoke('get_stylesheet_uri', func_get_args());
+function get_stylesheet_directory_uri() {
+    return \Xend\WordPress\Mock::getInstance()->invoke('get_stylesheet_directory_uri', func_get_args());
 }
 
 function get_template_directory() {
     return \Xend\WordPress\Mock::getInstance()->invoke('get_template_directory', func_get_args());
 }
 
-function get_template_uri() {
-    return \Xend\WordPress\Mock::getInstance()->invoke('get_template_uri', func_get_args());
+function get_template_directory_uri() {
+    return \Xend\WordPress\Mock::getInstance()->invoke('get_template_directory_uri', func_get_args());
 }
 
 function register_nav_menus($args = array()) {
