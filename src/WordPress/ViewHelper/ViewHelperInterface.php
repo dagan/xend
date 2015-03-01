@@ -132,9 +132,24 @@ interface ViewHelperInterface {
     /**
      * Render a Comment Form
      *
-     * @param CommentForm $form The comment form to render (default is WordPress defaults)
-     * @param null $postId The ID of the post the comment form targets (default is current post)
-     * @return mixed
+     * @param CommentForm|string $form The comment form to render (default is WordPress defaults)
+     * @param int|null $postId The ID of the post the comment form targets (default is current post)
+     * @return void
      */
-    public function renderCommentForm(CommentForm $form = null, $postId = null);
+    public function renderCommentForm($form = null, $postId = null);
+
+    /**
+     * Register a Comment Form to Enable Rendering it by Name
+     * @param CommentForm $form
+     * @param string $name
+     * @return void
+     */
+    public function registerCommentForm(CommentForm $form, $name);
+
+    /**
+     * Set the Comment Form to use By Default
+     * @param string $name
+     * @return void
+     */
+    public function setDefaultCommentForm($name);
 }

@@ -6,6 +6,13 @@ use \Xend\WordPress\Exception;
 
 abstract class AbstractViewHelper implements ViewHelperInterface {
 
+    protected $_commentForms;
+    protected $_defaultCommentForm;
+
+    public function __construct() {
+        $this->_commentForms = array();
+    }
+
     public function wordpress() {
         return $this;
     }
@@ -238,7 +245,19 @@ abstract class AbstractViewHelper implements ViewHelperInterface {
         }
     }
 
-    public function renderCommentForm(CommentForm $commentForm = null, $postId = null) {
+    public function renderCommentForm($commentForm = null, $postId = null) {
+
+        if (is_null($commentForm) && isset($this->_defaultCommentForm)) {
+            $commentForm = $this->_defaultCommentForm;
+        }
+
+        if (is_string($commentForm)) {
+            if (array_key_exists($commentForm, $this->_commentForms)) {
+                $commentForm = $this->_commentForms[$commentForm];
+            } else {
+                throw new Exception("Unknown comment form: " . $commentForm);
+            }
+        }
 
         $options = array();
         if ($commentForm instanceof CommentForm) {
@@ -305,5 +324,16 @@ abstract class AbstractViewHelper implements ViewHelperInterface {
         }
 
         comment_form($options, $postId);
+    }
+
+    public function registerCommentForm(CommentForm $commentForm, $name) {
+        if (!isset($this->_commentForms)) {
+            $this->_commentForms = array();
+        }
+        $this->_commentForms[$name] = $commentForm;
+    }
+
+    public function setDefaultCommentForm($name) {
+        $this->_defaultCommentForm = $name;
     }
 }
