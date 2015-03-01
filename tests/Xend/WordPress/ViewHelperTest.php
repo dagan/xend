@@ -343,4 +343,34 @@ EOT;
         $this->fixture->renderCommentForm($commentForm, 2);
         $this->assertEquals("Comment Form!", ob_get_clean());
     }
+
+    /**
+     * @depends testRenderCommentForm
+     */
+    public function testRegisterCommentForm() {
+        $this->wordpress()->expects('comment_form')->with(array('id_form' => 'my-comment-form'));
+        $commentForm = new \Xend\WordPress\ViewHelper\CommentForm(array('formId' => 'my-comment-form'));
+        $this->fixture->registerCommentForm($commentForm, 'unit-test');
+        $this->fixture->renderCommentForm('unit-test');
+    }
+
+    public function testRegisterCommentForm2() {
+        try {
+            $this->fixture->renderCommentForm('my-comment-form');
+            $this->fail("ViewHelper::renderCommentForm() failed to throw an exception when called with an invalid form name");
+        } catch (\Xend\WordPress\Exception $ex) {
+            $this->assertEquals("Unknown comment form: my-comment-form", $ex->getMessage());
+        }
+    }
+
+    /**
+     * @depends testRegisterCommentForm
+     */
+    public function testSetDefaultCommentForm() {
+        $this->wordpress()->expects('comment_form')->with(array('id_form' => 'my-comment-form'));
+        $commentForm = new \Xend\WordPress\ViewHelper\CommentForm(array('formId' => 'my-comment-form'));
+        $this->fixture->registerCommentForm($commentForm, 'unit-test');
+        $this->fixture->setDefaultCommentForm('unit-test');
+        $this->fixture->renderCommentForm();
+    }
 }
