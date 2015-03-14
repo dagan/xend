@@ -92,6 +92,7 @@ interface ViewHelperInterface {
 
     /**
      * Retrieve the Document Body Class Attribute
+     *
      * @param string $class
      * @return string
      */
@@ -99,6 +100,7 @@ interface ViewHelperInterface {
 
     /**
      * Retrieve the Class Attribute for a Post
+     *
      * @param \Xend\WordPress\Posts\Post $post
      * @param string $additionalClasses
      * @return string
@@ -107,6 +109,7 @@ interface ViewHelperInterface {
 
     /**
      * Retrieve the Class Attribute for a Comment
+     *
      * @param \Xend\WordPress\Posts\Comment $comment
      * @param string $additionalClasses
      * @return string
@@ -115,12 +118,14 @@ interface ViewHelperInterface {
 
     /**
      * Render a WordPress Menu
+     *
      * @param MenuOptions $options
      */
     public function renderMenu(Menu $options);
 
     /**
      * Render a WordPress Sidebar
+     *
      * @param string|int $ref Either the sidebar's name or ID (preferebly, the name)
      * @param bool $return Whether to return or echo the rendered string. Default is echo.
      * @returns bool|string By default, returns true if the sidebar rendered
@@ -128,6 +133,36 @@ interface ViewHelperInterface {
      *                      returns the rendered string on success and false on failure.
      */
     public function renderSidebar($ref, $return = false);
+
+    /**
+     * Render a Comment List
+     *
+     * @param \Xend\WordPress\Query\CommentIterator|array $comments Either a CommentIterator or an
+     * array of the comments to render.
+     * @param CommentList|string $commentList Either a CommentList object or the name of a comment
+     * list to render. If not provided and a default comment list is set, the default will be used;
+     * otherwise, the default WordPress options will be used.
+     * @return void|string Returns the rendered list if $commentList->render() == false, otherwise
+     * returns null.
+     */
+    public function renderCommentList($comments = null, $commentList = null);
+
+    /**
+     * Register a Comment List to Enable Rendering it by Name
+     *
+     * @param CommentList $commentList
+     * @param string $name
+     * @return void
+     */
+    public function registerCommentList(CommentList $commentList, $name);
+
+    /**
+     * Set the CommentList to Use by Default
+     *
+     * @param $name
+     * @return void
+     */
+    public function setDefaultCommentList($name);
 
     /**
      * Render a Comment Form
@@ -139,7 +174,8 @@ interface ViewHelperInterface {
     public function renderCommentForm($form = null, $postId = null);
 
     /**
-     * Register a Comment Form to Enable Rendering it by Name
+     * Register a CommentForm to Enable Rendering it by Name
+     *
      * @param CommentForm $form
      * @param string $name
      * @return void
@@ -147,7 +183,8 @@ interface ViewHelperInterface {
     public function registerCommentForm(CommentForm $form, $name);
 
     /**
-     * Set the Comment Form to use By Default
+     * Set the CommentForm to Use by Default
+     *
      * @param string $name
      * @return void
      */
