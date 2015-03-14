@@ -3,14 +3,18 @@
 namespace Xend\WordPress\ViewHelper;
 
 use \Xend\WordPress\Exception;
+use Xend\WordPress\Query\CommentIterator;
 
 abstract class AbstractViewHelper implements ViewHelperInterface {
 
     protected $_commentForms;
     protected $_defaultCommentForm;
+    protected $_commentLists;
+    protected $_defaultCommentList;
 
     public function __construct() {
         $this->_commentForms = array();
+        $this->_commentLists = array();
     }
 
     public function wordpress() {
@@ -245,6 +249,82 @@ abstract class AbstractViewHelper implements ViewHelperInterface {
         }
     }
 
+    public function renderCommentList($comments = null, $commentList = null) {
+        if (is_null($commentList) && isset($this->_defaultCommentList)) {
+            $commentList = $this->_commentLists[$this->_defaultCommentList];
+        }
+
+        if (is_string($commentList)){
+            if (array_key_exists($commentList, $this->_commentLists)) {
+               $commentList = $this->_commentLists[$commentList];
+            } else {
+                throw new Exception("Unknown comment list: " . $commentList);
+            }
+        }
+
+        $options = array();
+        if ($commentList instanceof CommentList) {
+
+            if (isset($commentList->style)) {
+                $options['style'] = $commentList->style;
+            }
+
+            if (isset($commentList->type)) {
+                $options['type'] = $commentList->type;
+            }
+
+            if (isset($commentList->format)) {
+                $options['format'] = $commentList->format;
+            }
+
+            if (isset($commentList->replyText)) {
+                $options['reply_text'] =  $commentList->replyText;
+            }
+
+            if (isset($commentList->avatarSize)) {
+                $options['avatar_size'] = $commentList->avatarSize;
+            }
+
+            if (isset($commentList->reverseTopLevel)) {
+                $options['reverse_top_level'] = $commentList->reverseTopLevel;
+            }
+
+            if (isset($commentList->reverseChildren)) {
+                $options['reverse_children'] = $commentList->reverseChildren;
+            }
+
+            if (isset($commentList->maxDepth)) {
+                $options['max_depth'] = $commentList->maxDepth;
+            }
+
+            if (isset($commentList->page)) {
+                $options['page'] = $commentList->page;
+            }
+
+            if (isset($commentList->perPage)) {
+                $options['per_page'] = $commentList->perPage;
+            }
+
+            if (isset($commentList->echo)) {
+                $options['echo'] = $commentList->echo;
+            }
+        }
+
+        if ($comments instanceof CommentIterator) {
+            $comments = $comments->getCommentArray();
+        }
+
+        return wp_list_comments($options, $comments);
+    }
+
+    public function registerCommentList(CommentList $list, $name) {
+        $this->_commentLists[$name] = $list;
+    }
+
+    public function setDefaultCommentList($name) {
+        $this->_defaultCommentList = $name;
+    }
+
     public function renderCommentForm($commentForm = null, $postId = null) {
 
         if (is_null($commentForm) && isset($this->_defaultCommentForm)) {
@@ -327,9 +407,6 @@ abstract class AbstractViewHelper implements ViewHelperInterface {
     }
 
     public function registerCommentForm(CommentForm $commentForm, $name) {
-        if (!isset($this->_commentForms)) {
-            $this->_commentForms = array();
-        }
         $this->_commentForms[$name] = $commentForm;
     }
 

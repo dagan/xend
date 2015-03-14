@@ -24,9 +24,18 @@ class CommentIterator implements \Iterator {
     public function __construct(\WP_Query $query, \Xend\WordPress\Posts\PostsInterface $posts,
                                 \Xend\WordPress\Events\EventsInterface $events) {
 
-        $this->_query = $query;
-        $this->_posts = $posts;
+        $this->_query  = $query;
+        $this->_posts  = $posts;
         $this->_events = $events;
+    }
+
+    /**
+     * Retrieve the Raw Comment Array
+     *
+     * @return array
+     */
+    public function getCommentArray() {
+        return $this->_query->comments;
     }
 
     public function rewind() {
@@ -45,7 +54,7 @@ class CommentIterator implements \Iterator {
 
     public function current() {
         return new \Xend\WordPress\Posts\CommentContext($this->_posts, $this->_events,
-            $this->_query->comments[$this->_query->current_comment]);
+                                                        $this->_query->comments[$this->_query->current_comment]);
     }
 
     public function key() {

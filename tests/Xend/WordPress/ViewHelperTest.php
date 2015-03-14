@@ -38,8 +38,8 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 
     public function testBlogInfo2() {
         $this->wordpress()->expects('get_bloginfo', $this->once())
-                          ->with("description", "display")
-                          ->willreturn("My Test Blog is a fantastic weblog");
+             ->with("description", "display")
+             ->willreturn("My Test Blog is a fantastic weblog");
         ob_start();
         $this->fixture->blogInfo("description");
         $this->assertEquals("My Test Blog is a fantastic weblog", ob_get_clean());
@@ -47,8 +47,8 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 
     public function testTitle() {
         $this->wordpress()->expects('wp_title', $this->once())
-                          ->with('&raquo;', true, 'LEFT')
-                          ->willReturn("My Test Blog &raquo; Home");
+             ->with('&raquo;', true, 'LEFT')
+             ->willReturn("My Test Blog &raquo; Home");
         ob_start();
         $this->fixture->title();
         $this->assertEquals("My Test Blog &raquo; Home", ob_get_clean());
@@ -63,8 +63,8 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 
     public function testGetThemeDirectory() {
         $this->wordpress()->expects('get_template_directory', $this->once())
-                          ->with()
-                          ->willReturn("/path/to/parent/theme");
+             ->with()
+             ->willReturn("/path/to/parent/theme");
         $this->assertEquals("/path/to/parent/theme", $this->fixture->getThemeDirectory());
     }
 
@@ -91,7 +91,7 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 
     public function testRegisterStyle() {
         $this->wordpress()->expects('wp_register_style', $this->once())
-                          ->with('my-style', '/path/to/style.css', array(), false, 'all');
+             ->with('my-style', '/path/to/style.css', array(), false, 'all');
         $this->assertSame($this->fixture, $this->fixture->registerStyle('my-style', '/path/to/style.css'));
     }
 
@@ -105,7 +105,7 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 
     public function testEnqueueStyle() {
         $this->wordpress()->expects('wp_enqueue_style', $this->once())
-                          ->with('my-style', '', array(), false, 'all');
+             ->with('my-style', '', array(), false, 'all');
         $this->assertSame($this->fixture, $this->fixture->enqueueStyle('my-style'));
     }
 
@@ -119,8 +119,8 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 
     public function testPrintStyles() {
         $this->wordpress()->expects('wp_print_styles', $this->once())
-                          ->with()
-                          ->willReturnCallback(function() { echo "hello styles!"; });
+             ->with()
+             ->willReturnCallback(function () { echo "hello styles!"; });
         ob_start();
         $this->fixture->printStyles();
         $this->assertEquals('hello styles!', ob_get_clean());
@@ -137,7 +137,7 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
              ->with('my-script', '/path/to/script.js', array('bootstrap'), '1.0.0', true);
         $this->assertSame($this->fixture,
                           $this->fixture->registerScript('my-script', '/path/to/script.js', array('bootstrap'), '1.0.0',
-                                                        true));
+                                                         true));
     }
 
     public function testEnqueueScript() {
@@ -151,13 +151,13 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
              ->with('my-script', '/alternate/uri/script.js', array('bootstrap'), '1.0.0', true);
         $this->assertSame($this->fixture,
                           $this->fixture->enqueueScript('my-script', '/alternate/uri/script.js', array('bootstrap'),
-                                                       '1.0.0', true));
+                                                        '1.0.0', true));
     }
 
     public function testPrintScripts() {
         $this->wordpress()->expects('wp_print_scripts', $this->once())
              ->with()
-             ->willReturnCallback(function() { echo "hello scripts!"; });
+             ->willReturnCallback(function () { echo "hello scripts!"; });
         ob_start();
         $this->fixture->printScripts();
         $this->assertEquals('hello scripts!', ob_get_clean());
@@ -180,8 +180,8 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 
     public function testGetBodyClass2() {
         $this->wordpress()->expects('get_body_class', $this->once())
-                          ->with('three')
-                          ->willReturn(array('one', 'two', 'three'));
+             ->with('three')
+             ->willReturn(array('one', 'two', 'three'));
         $this->assertEquals('one two three', $this->fixture->getBodyClass('three'));
     }
 
@@ -194,8 +194,8 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
     public function testGetPostClass2() {
         $post = new \Xend\WordPress\Posts\Post(new \WP_Post(new \ArrayObject(array('ID' => 1))));
         $this->wordpress()->expects('get_post_class', $this->once())
-                          ->with('my-post', 1)
-                          ->willReturn(array('post', 'post-1', 'my-post'));
+             ->with('my-post', 1)
+             ->willReturn(array('post', 'post-1', 'my-post'));
         $this->assertEquals('post post-1 my-post', $this->fixture->getPostClass($post, 'my-post'));
     }
 
@@ -203,8 +203,8 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
         $comment = new \Xend\WordPress\Posts\Comment(
             new \ArrayObject(array('comment_ID' => 2, 'comment_post_ID' => 1), \ArrayObject::ARRAY_AS_PROPS));
         $this->wordpress()->expects('get_comment_class', $this->once())
-                          ->with('', 2, 1)
-                          ->willReturn(array('comment', 'comment-2'));
+             ->with('', 2, 1)
+             ->willReturn(array('comment', 'comment-2'));
         $this->assertEquals('comment comment-2', $this->fixture->getCommentClass($comment));
     }
 
@@ -220,25 +220,25 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
     public function testRenderMenu() {
         $menu = new \Xend\WordPress\ViewHelper\Menu("My Menu");
         $this->wordpress()->expects('wp_nav_menu', $this->once())
-                          ->with(array('theme_location' => 'My Menu', 'container' => 'div', 'echo' => false))
-                          ->willReturn("My Menu Goes Here");
+             ->with(array('theme_location' => 'My Menu', 'container' => 'div', 'depth' => 0, 'echo' => false))
+             ->willReturn("My Menu Goes Here");
         $this->assertEquals("My Menu Goes Here", $this->fixture->renderMenu($menu, true));
     }
 
     public function testRenderMenu2() {
-        $menu = new \Xend\WordPress\ViewHelper\Menu("my-menu", array('maxDepth' => 3),
-                                                    \Xend\WordPress\ViewHelper\Menu::REF_BY_OTHER);
-        $menu->container = "nav";
-        $menu->containerId = "my-nav-menu";
+        $menu                 = new \Xend\WordPress\ViewHelper\Menu("my-menu", array('maxDepth' => 3),
+                                                                    \Xend\WordPress\ViewHelper\Menu::REF_BY_OTHER);
+        $menu->container      = "nav";
+        $menu->containerId    = "my-nav-menu";
         $menu->containerClass = "nav-menu";
-        $menu->menuId = "nav-items";
-        $menu->menuClass = "nav-list";
-        $menu->beforeLink = "Click this: ";
-        $menu->afterLink = " :click That";
+        $menu->menuId         = "nav-items";
+        $menu->menuClass      = "nav-list";
+        $menu->beforeLink     = "Click this: ";
+        $menu->afterLink      = " :click That";
         $menu->beforeLinkText = "(";
-        $menu->afterLinkText = ")";
-        $menu->renderPattern = '<ul class="%2$s" id="%1$s">%3$s</ul>';
-        $menu->fallback = "This Menu Is Missing!";
+        $menu->afterLinkText  = ")";
+        $menu->renderPattern  = '<ul class="%2$s" id="%1$s">%3$s</ul>';
+        $menu->fallback       = "This Menu Is Missing!";
 
         $expected = <<< EOT
 <nav id="my-nav-mnu" class="nav-menu">
@@ -249,21 +249,21 @@ class ViewHelperTest extends \Xend\WordPress\TestCase {
 EOT;
 
         $this->wordpress()->expects('wp_nav_menu', $this->once())
-                          ->with(array(
-                                     'menu' => 'my-menu',
-                                     'container' => 'nav',
-                                     'container_id' => 'my-nav-menu',
-                                     'container_class' => 'nav-menu',
-                                     'menu_id' => 'nav-items',
-                                     'menu_class' => 'nav-list',
-                                     'items_wrap' => '<ul class="%2$s" id="%1$s">%3$s</ul>',
-                                     'before' => 'Click this: ',
-                                     'after' => ' :click That',
-                                     'link_before' => '(',
-                                     'link_after' => ')',
-                                     'depth' => 3
-                                 ))
-                          ->willReturnCallback(function() use ($expected) { echo $expected; });
+             ->with(array(
+                        'menu'            => 'my-menu',
+                        'container'       => 'nav',
+                        'container_id'    => 'my-nav-menu',
+                        'container_class' => 'nav-menu',
+                        'menu_id'         => 'nav-items',
+                        'menu_class'      => 'nav-list',
+                        'items_wrap'      => '<ul class="%2$s" id="%1$s">%3$s</ul>',
+                        'before'          => 'Click this: ',
+                        'after'           => ' :click That',
+                        'link_before'     => '(',
+                        'link_after'      => ')',
+                        'depth'           => 3
+                    ))
+             ->willReturnCallback(function () use ($expected) { echo $expected; });
 
         ob_start();
         $this->fixture->renderMenu($menu);
@@ -272,29 +272,100 @@ EOT;
 
     public function testRenderSidebar() {
         $this->wordpress()->expects('dynamic_sidebar', $this->once())
-                          ->with("my-sidebar")
-                          ->willReturnCallback(function () { echo "My Sidebar Goes Here"; return true;});
+             ->with("my-sidebar")
+             ->willReturnCallback(function () {
+                 echo "My Sidebar Goes Here";
+                 return true;
+             });
         $this->assertEquals("My Sidebar Goes Here", $this->fixture->renderSidebar("my-sidebar", true));
     }
 
     public function testRenderSidebar2() {
         $this->wordpress()->expects('dynamic_sidebar', $this->once())
-                          ->with("my-sidebar")
-                          ->willReturn(false);
+             ->with("my-sidebar")
+             ->willReturn(false);
         $this->assertFalse($this->fixture->renderSidebar("my-sidebar", true));
     }
 
     public function testRenderSidebar3() {
         $this->wordpress()->expects('dynamic_sidebar', $this->once())
-                          ->with('my-sidebar')
-                          ->willReturn(true);
+             ->with('my-sidebar')
+             ->willReturn(true);
         $this->assertTrue($this->fixture->renderSidebar('my-sidebar'));
+    }
+
+    public function testRenderCommentList() {
+        $this->wordpress()->expects('wp_list_comments', $this->once())->with(array(), null);
+        $this->fixture->renderCommentList();
+    }
+
+    public function testRenderCommentList2() {
+        $expectedOptions = array(
+            'style'             => 'div',
+            'type'              => 'comment',
+            'format'            => 'html5',
+            'reply_text'        => 'Respond',
+            'avatar_size'       => 64,
+            'reverse_top_level' => true,
+            'reverse_children'  => true,
+            'max_depth'         => 17,
+            'page'              => 2,
+            'per_page'          => 10,
+            'echo'              => false,
+        );
+
+        $this->wordpress()->expects('wp_list_comments')->with($expectedOptions, null);
+
+        $commentList                  = new \Xend\WordPress\ViewHelper\CommentList();
+        $commentList->style           = $expectedOptions['style'];
+        $commentList->type            = $expectedOptions['type'];
+        $commentList->format          = $expectedOptions['format'];
+        $commentList->replyText       = $expectedOptions['reply_text'];
+        $commentList->avatarSize      = $expectedOptions['avatar_size'];
+        $commentList->reverseTopLevel = $expectedOptions['reverse_top_level'];
+        $commentList->reverseChildren = $expectedOptions['reverse_children'];
+        $commentList->maxDepth        = $expectedOptions['max_depth'];
+        $commentList->page            = $expectedOptions['page'];
+        $commentList->perPage         = $expectedOptions['per_page'];
+        $commentList->echo            = $expectedOptions['echo'];
+
+        $this->fixture->renderCommentList(null, $commentList);
+    }
+
+    /**
+     * @depends testRenderCommentList
+     */
+    public function testRegisterCommentList() {
+        $this->wordpress()->expects('wp_list_comments')->with(array('format' => 'html5'), null);
+        $commentList = new \Xend\WordPress\ViewHelper\CommentList(array('format' => 'html5'));
+        $this->fixture->registerCommentList($commentList, 'unit-test');
+        $this->fixture->renderCommentList(null, 'unit-test');
+    }
+
+    public function testRegisterCommentList2() {
+        try {
+            $this->fixture->renderCommentList(null, 'my-comment-list');
+            $this->fail("ViewHelper::renderCommentList() failed to throw an exception when called with an invalid form name");
+        } catch (\Xend\WordPress\Exception $ex) {
+            $this->assertEquals("Unknown comment list: my-comment-list", $ex->getMessage());
+        }
+    }
+
+    /**
+     * @depends testRegisterCommentList
+     */
+    public function testSetDefaultCommentList() {
+        $this->wordpress()->expects('comment_form')->with(array('id_form' => 'my-comment-form'));
+        $commentForm = new \Xend\WordPress\ViewHelper\CommentForm(array('formId' => 'my-comment-form'));
+        $this->fixture->registerCommentForm($commentForm, 'unit-test');
+        $this->fixture->setDefaultCommentForm('unit-test');
+        $this->fixture->renderCommentForm();
     }
 
     public function testRenderCommentForm() {
         $this->wordpress()->expects('comment_form', $this->once())
-                          ->with(array(), null)
-                          ->willReturnCallback(function() { echo "Comment Form"; });
+             ->with(array(), null)
+             ->willReturnCallback(function () { echo "Comment Form"; });
         ob_start();
         $this->fixture->renderCommentForm();
         $this->assertEquals("Comment Form", ob_get_clean());
@@ -320,25 +391,25 @@ EOT;
             'format'               => 'html5'
         );
 
-        $commentForm = new \Xend\WordPress\ViewHelper\CommentForm(array('format' => $expectedOptions['format']));
-        $commentForm->title = $expectedOptions['title_reply'];
-        $commentForm->replyTitle = $expectedOptions['title_reply_to'];
-        $commentForm->fields = $expectedOptions['fields'];
-        $commentForm->commentField = $expectedOptions['comment_field'];
-        $commentForm->mustLogInMessage = $expectedOptions['must_log_in'];
+        $commentForm                    = new \Xend\WordPress\ViewHelper\CommentForm(array('format' => $expectedOptions['format']));
+        $commentForm->title             = $expectedOptions['title_reply'];
+        $commentForm->replyTitle        = $expectedOptions['title_reply_to'];
+        $commentForm->fields            = $expectedOptions['fields'];
+        $commentForm->commentField      = $expectedOptions['comment_field'];
+        $commentForm->mustLogInMessage  = $expectedOptions['must_log_in'];
         $commentForm->loggedInAsMessage = $expectedOptions['logged_in_as'];
-        $commentForm->beforeMessage = $expectedOptions['comment_notes_before'];
-        $commentForm->afterMessage = $expectedOptions['comment_notes_after'];
-        $commentForm->formId = $expectedOptions['id_form'];
-        $commentForm->submitId = $expectedOptions['id_submit'];
-        $commentForm->submitClass = $expectedOptions['class_submit'];
-        $commentForm->submitName = $expectedOptions['name_submit'];
-        $commentForm->submitText = $expectedOptions['label_submit'];
-        $commentForm->cancelText = $expectedOptions['cancel_reply_link'];
+        $commentForm->beforeMessage     = $expectedOptions['comment_notes_before'];
+        $commentForm->afterMessage      = $expectedOptions['comment_notes_after'];
+        $commentForm->formId            = $expectedOptions['id_form'];
+        $commentForm->submitId          = $expectedOptions['id_submit'];
+        $commentForm->submitClass       = $expectedOptions['class_submit'];
+        $commentForm->submitName        = $expectedOptions['name_submit'];
+        $commentForm->submitText        = $expectedOptions['label_submit'];
+        $commentForm->cancelText        = $expectedOptions['cancel_reply_link'];
 
         $this->wordpress()->expects('comment_form', $this->once())
-                          ->with($expectedOptions, 2)
-                          ->willReturnCallback(function() {echo "Comment Form!";});
+             ->with($expectedOptions, 2)
+             ->willReturnCallback(function () { echo "Comment Form!"; });
         ob_start();
         $this->fixture->renderCommentForm($commentForm, 2);
         $this->assertEquals("Comment Form!", ob_get_clean());

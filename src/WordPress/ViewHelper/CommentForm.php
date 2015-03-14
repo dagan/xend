@@ -61,14 +61,14 @@ class CommentForm {
     }
 
     public function __isset($property) {
-        return ($this->{$property} != null);
+        return ($this->{$property} !== null);
     }
 
     /**
      * Sets Menu Options
      *
      * @param array $args
-     * @return \Xend\WordPress\Menu
+     * @return \Xend\WordPress\CommentForm
      */
     public function setOptions($args) {
         foreach ($args as $param => $value) {

@@ -142,6 +142,10 @@ function wp_head() {
     return \Xend\WordPress\Mock::getInstance()->invoke('wp_head', func_get_args());
 }
 
+function wp_list_comments($options = array(), $comments = null) {
+    return \Xend\WordPress\Mock::getInstance()->invoke('wp_list_comments', func_get_args());
+}
+
 function wp_nav_menu($args) {
     return \Xend\WordPress\Mock::getInstance()->invoke('wp_nav_menu', func_get_args());
 }
