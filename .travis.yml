@@ -11,5 +11,5 @@ before_install: composer self-update
 install: composer install
 
 script:
- - phpunit --configuration tests/phpunit.xml
- - phpunit --configuration tests/phpunit-loader.xml
+ - vendor/bin/phpunit --configuration tests/phpunit.xml
+ - vendor/bin/phpunit --configuration tests/phpunit-loader.xml
